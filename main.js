@@ -1,36 +1,38 @@
 const Discord = require('discord.js');
+const Enmap = require("enmap");
+const fs = require("fs");
+
 const client = new Discord.Client();
 const config = require('./config/config.json');
 
-
-const prefix = config.prefix;
+client.config = config;
 
 client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
 });
 
-client.on('message', msg => {
 
-    const args = msg.content.slice(prefix.length).trim().split(/ +/g);
-    const command = args.shift().toLowerCase();
+fs.readdir("./events/", (err, files) => {
+    if (err) return console.error(err);
+    files.forEach(file => {
+        const event = require(`./events/${file}`);
+        let eventName = file.split(".")[0];
+        client.on(eventName, event.bind(null, client));
+        delete require.cache[require.resolve(`./events/${file}`)];
+    })
+})
 
-    if(msg.author.id !== config.ownerID) return;
-    if(!msg.content.startsWith(prefix) || msg.author.bot) return;
+client.commands = new Enmap();
 
-    switch(command) {
-
-        case 'summon' :
-            msg.channel.send('WHAT IS YOUR COMMAND FOR THE PORO KING, '+msg.author.username+'?!');
-            break;
-        case "ping" :
-            msg.channel.send("pong!");
-            break;
-        case "foo" :
-            msg.channel.send("bar!");
-            break;
-        default:
-            msg.channel.send("YOU SEEM TO BE CONFUSED...")
-    }
-});
+fs.readdir("./commands/", (err, files) => {
+    if(err) return console.error(err);
+    files.forEach(file => {
+        if (!file.endsWith(".js")) return;
+        let props = require(`./commands/${file}`);
+        let commandName = file.split(".")[0];
+        console.log(`Attempting to load command ${commandName}`);
+        client.commands.set(commandName, props);
+    })
+})
 
 client.login(config.token);
