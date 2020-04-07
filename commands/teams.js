@@ -1,47 +1,60 @@
-/* DEFINE DISCORD ROLE ID's */
-const BLUE_TEAM_ROLE = '684139549814685869';
-const RED_TEAM_ROLE = '684139721274032177';
-const READY_ROLE = '684139186411798627';
-const BOT_GUILD = '210171568066658304';
-
 exports.run = (client, message, args) => {
-
-    let ready = message.guild.roles.cache.get(READY_ROLE).members;
+    /**
+     *  Take users in specified channel (args), shuffle users into 2 teams and assign role based on result
+     *  @param  {Object}    client      Discord Bot Client Object
+     *  @param  {Object}    message     Message Object that instanciated this bot command 
+     *  @param  {String}    args        List of additional arguments provided with the command
+     **/
     
-    console.log( 'Ready Player List: ' + ready.map(m=>m.user.username) );
+     //Load constants from file
+    const Constants = require('../config/constants');
 
-    let randomizedPlayers = ready.map(m=>m.user.id);
+    console.log(`ARGUMENTS: ${args}`)
 
-    for( let i = randomizedPlayers.length - 1; i > 0; i--){
-        const j = Math.floor(Math.random() * i);
-        const temp = randomizedPlayers[i];
-        randomizedPlayers[i] = randomizedPlayers[j];
-        randomizedPlayers[j] = temp;
-    }
-    
-    console.log('Randomized list: ' + randomizedPlayers);
-    
-    let blueTeam = randomizedPlayers.splice(0, Math.ceil(randomizedPlayers.length / 2));
-    let redTeam = randomizedPlayers;
+    //Fetch Users in ready role
+    message.guild.roles.fetch(Constants.READY_ROLE)
+    .then(ready=>{
+        //Get Ready Players ****CHANGE VARIABLE NAME****
+        let randomizedPlayers = ready.members.map(m=>m.user.id);
+        
+        //Randomize array of ready players 
+        for( let i = randomizedPlayers.length - 1; i > 0; i--){
+            const j = Math.floor(Math.random() * i);
+            const temp = randomizedPlayers[i];
+            randomizedPlayers[i] = randomizedPlayers[j];
+            randomizedPlayers[j] = temp;
+        }
 
-    console.log('Blue Team: ' + blueTeam);
-    console.log('Red Team: ' + redTeam);
+        //Split players into 2 teams
+        let blueTeam = randomizedPlayers.splice(0, Math.ceil(randomizedPlayers.length / 2));
+        let redTeam = randomizedPlayers;
 
-    blueTeam.forEach(m=> {
-        message.guild.members.fetch(m).then(teamMember => {
-            teamMember.roles.add(BLUE_TEAM_ROLE)
-            teamMember.roles.remove(READY_ROLE)
+        //Add proper role for each blue team player
+        blueTeam.forEach(m=> {
+            message.guild.members.fetch(m).then(teamMember => {
+                    teamMember.roles.add(Constants.BLUE_TEAM_ROLE)
+                    teamMember.roles.remove(Constants.READY_ROLE)
+                })
+                .catch(console.error);
+        })
+        //Add proper role for each red team player
+        redTeam.forEach(m=> {
+            message.guild.members.fetch(m)
+            .then(teamMember => {
+                teamMember.roles.add(Constants.RED_TEAM_ROLE)
+                teamMember.roles.remove(Constants.READY_ROLE)
+            })
             .catch(console.error);
         })
+        
+        //Send a message to the channel with members of each team
+        message.guild.roles.fetch(Constants.BLUE_TEAM_ROLE)
+        .then(blueMember=>message.channel.send("BLUE TEAM: " + blueMember.members.map(m=>m.displayName)))
+        .catch(console.error);
+        
+        message.guild.roles.fetch(Constants.RED_TEAM_ROLE)
+        .then(redMember=>message.channel.send("RED TEAM: " + redMember.members.map(m=>m.displayName)))
+        .catch(console.error);
     })
-    redTeam.forEach(m=> {
-        message.guild.members.fetch(m).then(teamMember => {
-            teamMember.roles.add(RED_TEAM_ROLE)
-            teamMember.roles.remove(READY_ROLE)
-            .catch(console.error)
-            ;
-        })
-    })
-
-   return 'WOOOWWW!';
+    return 'WOOOWWW!';
 }

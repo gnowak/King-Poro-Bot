@@ -5,6 +5,8 @@ const fs = require("fs");
 const client = new Discord.Client();
 const config = require('./config/config.json');
 
+const Constants = require('./config/constants');
+
 client.config = config;
 
 client.on('ready', () => {
